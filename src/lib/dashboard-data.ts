@@ -2,13 +2,13 @@ import { and, asc, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appSettings,
+  articles,
   assignmentRevisions,
   assignments,
   categories,
   goalLogs,
   goals,
   issueNotes,
-  news,
 } from "@/db/schema";
 import { todayKST } from "./date";
 
@@ -39,22 +39,17 @@ export async function getDashboardData() {
         () =>
           db
             .select({
-              id: news.id,
-              title: news.title,
-              source: news.source,
-              originalUrl: news.originalUrl,
-              summaryKo: news.summaryKo,
+              id: articles.id,
+              title: articles.title,
+              source: articles.source,
+              url: articles.url,
+              summary: articles.summary,
               category: categories.name,
-              publishedAt: news.publishedAt,
-              fetchedAt: news.fetchedAt,
+              publishedAt: articles.publishedAt,
             })
-            .from(news)
-            .leftJoin(categories, eq(news.categoryId, categories.id))
-            .orderBy(
-              sql`${news.publishedAt} desc nulls last`,
-              desc(news.fetchedAt),
-              desc(news.id),
-            )
+            .from(articles)
+            .leftJoin(categories, eq(articles.categoryId, categories.id))
+            .orderBy(desc(articles.publishedAt), desc(articles.id))
             .limit(6),
         [],
       ),

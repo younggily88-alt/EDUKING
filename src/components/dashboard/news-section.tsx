@@ -1,6 +1,7 @@
 import { formatShortDate } from "@/lib/date";
 import type { DashboardData } from "@/lib/dashboard-data";
-import { Card, Chip, DisabledButton, EmptyState, LoadError } from "./ui";
+import { NewsFetchButton } from "./news-fetch-button";
+import { Card, Chip, EmptyState, LoadError } from "./ui";
 
 export function NewsSection({
   news,
@@ -12,7 +13,7 @@ export function NewsSection({
   return (
     <Card
       title="교육계 주요 뉴스"
-      action={<DisabledButton>뉴스 가져오기</DisabledButton>}
+      action={<NewsFetchButton />}
     >
       {/* 카테고리 목록 + 추가 버튼 (뉴스 분류 관리) */}
       {!categories.failed && (
@@ -61,14 +62,14 @@ export function NewsSection({
               </div>
               <h3 className="line-clamp-2 font-semibold">{n.title}</h3>
               <p className="mt-2 line-clamp-3 flex-1 text-sm text-stone-600">
-                {n.summaryKo}
+                {n.summary}
               </p>
               <div className="mt-3 flex items-center justify-between text-sm">
                 <span className="text-stone-500">
-                  {formatShortDate(n.publishedAt ?? n.fetchedAt)}
+                  {formatShortDate(n.publishedAt)}
                 </span>
                 <a
-                  href={n.originalUrl}
+                  href={n.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-brand-600 hover:text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500"

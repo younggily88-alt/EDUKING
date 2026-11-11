@@ -45,6 +45,23 @@ export const news = pgTable("news", {
     .notNull(),
 });
 
+// RSS로 수집한 교육 기사. 원문 전문은 저장하지 않고 RSS가 주는 짧은 요약(summary)과 링크만 저장.
+// category_id는 이후 Claude 분류 단계에서 채우므로 nullable. URL 중복 허용(PRD: 가져올 때마다 새로 쌓음).
+export const articles = pgTable("articles", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  source: varchar("source", { length: 100 }).notNull(),
+  url: text("url").notNull(),
+  summary: text("summary"),
+  categoryId: integer("category_id").references(() => categories.id, {
+    onDelete: "set null",
+  }),
+  publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 // 과제 업로드
 export const assignments = pgTable("assignments", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -122,6 +139,7 @@ export const appSettings = pgTable("app_settings", {
 
 export type Category = typeof categories.$inferSelect;
 export type News = typeof news.$inferSelect;
+export type Article = typeof articles.$inferSelect;
 export type Assignment = typeof assignments.$inferSelect;
 export type AssignmentRevision = typeof assignmentRevisions.$inferSelect;
 export type IssueNote = typeof issueNotes.$inferSelect;
