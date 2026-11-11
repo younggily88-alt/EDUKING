@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Next.js App Router project (`src/app/`, Tailwind CSS v4, TypeScript, ESLint 9). **`PRD.md` (Korean) is the source of truth** for what to build — read it before implementing features. Done so far: Clerk auth wiring, Drizzle schema + generated migration. Not yet built: the dashboard UI (`src/app/page.tsx` is still the default template), API routes, news pipeline, Notion save. Installed but not yet used in code: `@anthropic-ai/sdk` (news summarize/classify), `rss-parser` (RSS fetch), `@modelcontextprotocol/sdk` (Notion MCP client).
 
+**`ui.md` is the UI guide** (layout, green color tokens, section specs, Tailwind conventions) — read it before building or changing any UI.
+
 **`AGENTS.md` warns that this Next.js (16.x) has breaking changes from older versions** — read the relevant guide in `node_modules/next/dist/docs/` before writing Next.js code. Note: the middleware file is `src/proxy.ts`, not `middleware.ts`.
 
 ## Commands
