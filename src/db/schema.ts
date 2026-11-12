@@ -2,6 +2,7 @@
   boolean,
   date,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -63,12 +64,56 @@ export const articles = pgTable("articles", {
 });
 
 // 과제 업로드
+export type RubricCriterion = {
+  name: string;
+  description: string;
+  maxPoints: number;
+};
+
+export type GradeResult = {
+  criteria: { name: string; maxPoints: number; score: number; comment: string }[];
+  overall: string;
+  strengths: string[];
+  improvements: string[];
+};
+
+// 채점 기준표: 항목(이름·설명·배점) 목록. 과제 채점 시 선택해서 사용한다.
+export const rubrics = pgTable("rubrics", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar("name", { length: 100 }).notNull(),
+  criteria: jsonb("criteria").$type<RubricCriterion[]>().notNull(),
+  ...timestamps,
+});
+
+// PDF로 제출한 과제는 PDF 파일을 저장하지 않고 Claude 채점 결과만 남긴다.
+// content에는 제출물 요약(PDF) 또는 직접 입력한 본문(텍스트 제출)이 들어간다.
 export const assignments = pgTable("assignments", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   date: date("date").notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),
+  fileName: text("file_name"),
+  rubricId: integer("rubric_id").references(() => rubrics.id, {
+    onDelete: "set null",
+  }),
+  score: integer("score"),
+  maxScore: integer("max_score"),
+  gradeResult: jsonb("grade_result").$type<GradeResult>(),
+  gradedAt: timestamp("graded_at", { withTimezone: true }),
   ...timestamps,
+});
+
+// 제출한 PDF 원본. 목록 조회가 무거워지지 않도록 assignments와 분리하고, base64 텍스트로 저장한다.
+// 과제를 지우면 함께 삭제된다. (이 기능 도입 전에 제출한 과제에는 원본이 없다.)
+export const assignmentFiles = pgTable("assignment_files", {
+  assignmentId: integer("assignment_id")
+    .primaryKey()
+    .references(() => assignments.id, { onDelete: "cascade" }),
+  dataBase64: text("data_base64").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 // 과제 수정 및 보완: 원본 과제 연결은 선택, 원본 삭제 시 연결만 해제
@@ -141,6 +186,7 @@ export type Category = typeof categories.$inferSelect;
 export type News = typeof news.$inferSelect;
 export type Article = typeof articles.$inferSelect;
 export type Assignment = typeof assignments.$inferSelect;
+export type Rubric = typeof rubrics.$inferSelect;
 export type AssignmentRevision = typeof assignmentRevisions.$inferSelect;
 export type IssueNote = typeof issueNotes.$inferSelect;
 export type Goal = typeof goals.$inferSelect;

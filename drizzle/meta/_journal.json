@@ -29,6 +29,20 @@
       "when": 1794400045129,
       "tag": "0003_spicy_joseph",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794400482005,
+      "tag": "0004_busy_wasp",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794400951742,
+      "tag": "0005_lucky_wong",
+      "breakpoints": true
     }
   ]
 }

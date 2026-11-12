@@ -25,7 +25,7 @@ export async function Dashboard() {
       </div>
       <NewsSection news={d.news} categories={d.categories} />
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <AssignmentsCard assignments={d.assignments} />
+        <AssignmentsCard assignments={d.assignments} rubrics={d.rubrics} />
         <RevisionsCard revisions={d.revisions} />
       </div>
       <IssueNotesCard issues={d.issues} />

@@ -9,8 +9,12 @@ import {
   goalLogs,
   goals,
   issueNotes,
+  rubrics,
 } from "@/db/schema";
 import { todayKST } from "./date";
+
+// 제출 PDF 원본 보관 여부 (본문은 불러오지 않고 존재 여부만 확인)
+const hasFile = sql<boolean>`exists (select 1 from assignment_files where assignment_files.assignment_id = ${assignments.id})`;
 
 export type Loaded<T> = { data: T; failed: boolean };
 
@@ -31,7 +35,7 @@ async function load<T>(
 export async function getDashboardData() {
   const today = todayKST();
 
-  const [latestNews, categoryList, goalList, manageList, settings, assignmentList, revisionList, issueList] =
+  const [latestNews, categoryList, goalList, manageList, settings, assignmentList, revisionList, issueList, rubricList] =
     await Promise.all([
       // 뉴스: 발행일 최신순 (발행일 없으면 뒤로), 같으면 가져온 순
       load(
@@ -122,6 +126,12 @@ export async function getDashboardData() {
               id: assignments.id,
               title: assignments.title,
               date: assignments.date,
+              content: assignments.content,
+              fileName: assignments.fileName,
+              score: assignments.score,
+              maxScore: assignments.maxScore,
+              gradeResult: assignments.gradeResult,
+              hasFile,
             })
             .from(assignments)
             .orderBy(desc(assignments.date), desc(assignments.id))
@@ -162,6 +172,19 @@ export async function getDashboardData() {
             .limit(5),
         [],
       ),
+      load(
+        "rubrics",
+        () =>
+          db
+            .select({
+              id: rubrics.id,
+              name: rubrics.name,
+              criteria: rubrics.criteria,
+            })
+            .from(rubrics)
+            .orderBy(asc(rubrics.id)),
+        [],
+      ),
     ]);
 
   return {
@@ -174,7 +197,31 @@ export async function getDashboardData() {
     assignments: assignmentList,
     revisions: revisionList,
     issues: issueList,
+    rubrics: rubricList,
   };
 }
 
 export type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
+
+// 과제 전체 기록(최신순). 대시보드는 5건만 보여주고, 전체는 /assignments 페이지에서 본다.
+export async function getAllAssignments() {
+  return load(
+    "assignments_all",
+    () =>
+      db
+        .select({
+          id: assignments.id,
+          title: assignments.title,
+          date: assignments.date,
+          content: assignments.content,
+          fileName: assignments.fileName,
+          score: assignments.score,
+          maxScore: assignments.maxScore,
+          gradeResult: assignments.gradeResult,
+              hasFile,
+        })
+        .from(assignments)
+        .orderBy(desc(assignments.date), desc(assignments.id)),
+    [],
+  );
+}

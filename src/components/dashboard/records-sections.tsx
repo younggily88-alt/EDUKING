@@ -1,5 +1,9 @@
+﻿import Link from "next/link";
 import { formatDotted } from "@/lib/date";
 import type { DashboardData } from "@/lib/dashboard-data";
+import { AssignmentItem } from "./assignment-item";
+import { AssignmentSubmit } from "./assignment-submit";
+import { RubricManager } from "./rubric-manager";
 import { Card, Chip, DisabledButton, EmptyState, LoadError } from "./ui";
 
 function Row({
@@ -26,11 +30,24 @@ function Row({
 
 export function AssignmentsCard({
   assignments,
+  rubrics,
 }: {
   assignments: DashboardData["assignments"];
+  rubrics: DashboardData["rubrics"];
 }) {
   return (
-    <Card title="과제 제출" action={<DisabledButton>새 과제</DisabledButton>}>
+    <Card
+      title="과제 제출"
+      action={
+        <Link
+          href="/assignments"
+          className="text-sm font-medium text-brand-600 hover:text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          전체 기록 보기 →
+        </Link>
+      }
+    >
+      {!rubrics.failed && <AssignmentSubmit rubrics={rubrics.data} />}
       {assignments.failed ? (
         <LoadError />
       ) : assignments.data.length === 0 ? (
@@ -38,9 +55,19 @@ export function AssignmentsCard({
       ) : (
         <ul className="space-y-1">
           {assignments.data.map((a) => (
-            <Row key={a.id} title={a.title} date={a.date} />
+            <AssignmentItem key={a.id} a={a} />
           ))}
         </ul>
+      )}
+      {!rubrics.failed && (
+        <details className="mt-4 border-t border-stone-100 pt-3">
+          <summary className="cursor-pointer text-sm font-medium text-brand-700">
+            채점 기준표 관리 ({rubrics.data.length})
+          </summary>
+          <div className="mt-3">
+            <RubricManager rubrics={rubrics.data} />
+          </div>
+        </details>
       )}
     </Card>
   );
