@@ -1,5 +1,6 @@
 import { formatDotted } from "@/lib/date";
 import type { Assignment } from "@/db/schema";
+import { SubmissionActions } from "./submission-actions";
 import { Chip } from "./ui";
 
 export type AssignmentRow = Pick<
@@ -12,17 +13,44 @@ export type AssignmentRow = Pick<
   | "score"
   | "maxScore"
   | "gradeResult"
+  | "rubricId"
 > & { hasFile: boolean };
 
+type RubricOption = { id: number; name: string };
+
 // 과제 한 건: 채점 결과가 있으면 점수 칩 + 펼쳐서 항목별 점수·피드백을 볼 수 있다.
-export function AssignmentItem({ a }: { a: AssignmentRow }) {
+// 펼친 영역 맨 아래에서 다른 기준표로 다시 채점하거나 기록을 삭제할 수 있다.
+export function AssignmentItem({
+  a,
+  rubrics = [],
+}: {
+  a: AssignmentRow;
+  rubrics?: RubricOption[];
+}) {
   const g = a.gradeResult;
+  const actions = (
+    <SubmissionActions
+      id={a.id}
+      title={a.title}
+      hasFile={a.hasFile}
+      rubricId={a.rubricId}
+      rubrics={rubrics}
+    />
+  );
 
   if (a.score == null || a.maxScore == null || !g) {
     return (
-      <li className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-brand-50">
-        <p className="min-w-0 truncate">{a.title}</p>
-        <span className="shrink-0 text-sm text-stone-500">{formatDotted(a.date)}</span>
+      <li className="rounded-lg hover:bg-brand-50">
+        <details>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
+            <span className="min-w-0 truncate">{a.title}</span>
+            <span className="shrink-0 text-sm text-stone-500">{formatDotted(a.date)}</span>
+          </summary>
+          <div className="space-y-3 px-3 pb-3 text-sm">
+            <p className="whitespace-pre-wrap text-stone-600">{a.content}</p>
+            {actions}
+          </div>
+        </details>
       </li>
     );
   }
@@ -99,6 +127,7 @@ export function AssignmentItem({ a }: { a: AssignmentRow }) {
               </ul>
             </div>
           )}
+          <div className="border-t border-stone-100 pt-3">{actions}</div>
         </div>
       </details>
     </li>

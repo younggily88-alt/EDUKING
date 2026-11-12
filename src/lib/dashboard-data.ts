@@ -3,7 +3,6 @@ import { db } from "@/db";
 import {
   appSettings,
   articles,
-  assignmentRevisions,
   assignments,
   categories,
   goalLogs,
@@ -12,9 +11,27 @@ import {
   rubrics,
 } from "@/db/schema";
 import { todayKST } from "./date";
+import { computeStreak, type Streak } from "./streak";
 
 // 제출 PDF 원본 보관 여부 (본문은 불러오지 않고 존재 여부만 확인)
 const hasFile = sql<boolean>`exists (select 1 from assignment_files where assignment_files.assignment_id = ${assignments.id})`;
+
+const issueColumns = {
+  id: issueNotes.id,
+  date: issueNotes.date,
+  titleSummary: issueNotes.titleSummary,
+  statusQuo: issueNotes.statusQuo,
+  problems: issueNotes.problems,
+  causes: issueNotes.causes,
+  policyTrends: issueNotes.policyTrends,
+  regionalContext: issueNotes.regionalContext,
+  solutions: issueNotes.solutions,
+  fieldCase: issueNotes.fieldCase,
+  counterarguments: issueNotes.counterarguments,
+  keywords: issueNotes.keywords,
+  aiFeedback: issueNotes.aiFeedback,
+  feedbackAt: issueNotes.feedbackAt,
+};
 
 export type Loaded<T> = { data: T; failed: boolean };
 
@@ -35,7 +52,7 @@ async function load<T>(
 export async function getDashboardData() {
   const today = todayKST();
 
-  const [latestNews, categoryList, goalList, manageList, settings, assignmentList, revisionList, issueList, rubricList] =
+  const [latestNews, categoryList, goalList, manageList, settings, assignmentList, revisionList, issueList, rubricList, streak] =
     await Promise.all([
       // 뉴스: 발행일 최신순 (발행일 없으면 뒤로), 같으면 가져온 순
       load(
@@ -48,13 +65,14 @@ export async function getDashboardData() {
               source: articles.source,
               url: articles.url,
               summary: articles.summary,
+              categoryId: articles.categoryId,
               category: categories.name,
               publishedAt: articles.publishedAt,
             })
             .from(articles)
             .leftJoin(categories, eq(articles.categoryId, categories.id))
             .orderBy(desc(articles.publishedAt), desc(articles.id))
-            .limit(6),
+            .limit(60),
         [],
       ),
       load(
@@ -71,9 +89,13 @@ export async function getDashboardData() {
               id: goals.id,
               title: goals.title,
               targetCount: goals.targetCount,
-              progress: sql<number>`coalesce(${goalLogs.progress}, 0)`.mapWith(
-                Number,
-              ),
+              autoType: goals.autoType,
+              // 자동 집계 목표는 오늘 활동 수(과제·수정 제출·현안)를, 나머지는 직접 기록한 진행도를 쓴다.
+              progress: sql<number>`case ${goals.autoType}
+                when 'assignment' then (select count(*) from assignments where kind = 'assignment' and date = ${today})
+                when 'revision' then (select count(*) from assignments where kind = 'revision' and date = ${today})
+                when 'issue' then (select count(*) from issue_notes where date = ${today})
+                else coalesce(${goalLogs.progress}, 0) end`.mapWith(Number),
             })
             .from(goals)
             .leftJoin(
@@ -99,6 +121,7 @@ export async function getDashboardData() {
               id: goals.id,
               title: goals.title,
               targetCount: goals.targetCount,
+              autoType: goals.autoType,
               startDate: goals.startDate,
               endDate: goals.endDate,
             })
@@ -131,29 +154,35 @@ export async function getDashboardData() {
               score: assignments.score,
               maxScore: assignments.maxScore,
               gradeResult: assignments.gradeResult,
+              rubricId: assignments.rubricId,
               hasFile,
             })
             .from(assignments)
+            .where(eq(assignments.kind, "assignment"))
             .orderBy(desc(assignments.date), desc(assignments.id))
             .limit(5),
         [],
       ),
+      // 과제 수정 제출: 과제 제출과 같은 테이블·같은 형태 (kind만 다름)
       load(
-        "assignment_revisions",
+        "revisions",
         () =>
           db
             .select({
-              id: assignmentRevisions.id,
-              title: assignmentRevisions.title,
-              date: assignmentRevisions.date,
-              originalTitle: assignments.title,
+              id: assignments.id,
+              title: assignments.title,
+              date: assignments.date,
+              content: assignments.content,
+              fileName: assignments.fileName,
+              score: assignments.score,
+              maxScore: assignments.maxScore,
+              gradeResult: assignments.gradeResult,
+              rubricId: assignments.rubricId,
+              hasFile,
             })
-            .from(assignmentRevisions)
-            .leftJoin(
-              assignments,
-              eq(assignmentRevisions.assignmentId, assignments.id),
-            )
-            .orderBy(desc(assignmentRevisions.date), desc(assignmentRevisions.id))
+            .from(assignments)
+            .where(eq(assignments.kind, "revision"))
+            .orderBy(desc(assignments.date), desc(assignments.id))
             .limit(5),
         [],
       ),
@@ -161,12 +190,7 @@ export async function getDashboardData() {
         "issue_notes",
         () =>
           db
-            .select({
-              id: issueNotes.id,
-              titleSummary: issueNotes.titleSummary,
-              keywords: issueNotes.keywords,
-              date: issueNotes.date,
-            })
+            .select(issueColumns)
             .from(issueNotes)
             .orderBy(desc(issueNotes.date), desc(issueNotes.id))
             .limit(5),
@@ -185,6 +209,7 @@ export async function getDashboardData() {
             .orderBy(asc(rubrics.id)),
         [],
       ),
+      load("streak", () => computeStreak(today), { days: 0, todayDone: false } as Streak),
     ]);
 
   return {
@@ -198,15 +223,18 @@ export async function getDashboardData() {
     revisions: revisionList,
     issues: issueList,
     rubrics: rubricList,
+    streak,
   };
 }
 
 export type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
 
 // 과제 전체 기록(최신순). 대시보드는 5건만 보여주고, 전체는 /assignments 페이지에서 본다.
-export async function getAllAssignments() {
+export type SubmissionKind = "assignment" | "revision";
+
+export async function getAllAssignments(kind: SubmissionKind = "assignment") {
   return load(
-    "assignments_all",
+    `submissions_all_${kind}`,
     () =>
       db
         .select({
@@ -218,10 +246,37 @@ export async function getAllAssignments() {
           score: assignments.score,
           maxScore: assignments.maxScore,
           gradeResult: assignments.gradeResult,
+              rubricId: assignments.rubricId,
               hasFile,
         })
         .from(assignments)
+        .where(eq(assignments.kind, kind))
         .orderBy(desc(assignments.date), desc(assignments.id)),
+    [],
+  );
+}
+
+// 현안 전체 목록(최신순). 대시보드는 5건만 보여주고, 전체는 /issues 페이지에서 본다.
+export async function getAllIssues() {
+  return load(
+    "issue_notes_all",
+    () =>
+      db
+        .select(issueColumns)
+        .from(issueNotes)
+        .orderBy(desc(issueNotes.date), desc(issueNotes.id)),
+    [],
+  );
+}
+
+export async function getRubrics() {
+  return load(
+    "rubrics_list",
+    () =>
+      db
+        .select({ id: rubrics.id, name: rubrics.name })
+        .from(rubrics)
+        .orderBy(asc(rubrics.id)),
     [],
   );
 }

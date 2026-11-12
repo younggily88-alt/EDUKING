@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getAllowedUserId } from "@/lib/access";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
@@ -42,7 +42,7 @@ function validate(
 }
 
 async function requireUser() {
-  const { userId } = await auth();
+  const userId = await getAllowedUserId();
   return userId;
 }
 

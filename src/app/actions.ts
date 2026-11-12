@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getAllowedUserId } from "@/lib/access";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -24,7 +24,7 @@ export async function updateExamDate(
   _prev: ExamDateState,
   formData: FormData,
 ): Promise<ExamDateState> {
-  const { userId } = await auth();
+  const userId = await getAllowedUserId();
   if (!userId) return { ok: false, error: "로그인이 필요해요." };
 
   const examDate = String(formData.get("examDate") ?? "").trim();
@@ -53,12 +53,15 @@ function normalizeDate(value: string | null | undefined): string | null | false 
   return isRealDate(v) ? v : false;
 }
 
+const AUTO_TYPES = ["assignment", "revision", "issue"] as const;
+
 function validateGoal(
   title: string,
   targetCount: number,
   startDate: string | null | undefined,
   endDate: string | null | undefined,
-): { error: string } | { start: string | null; end: string | null } {
+  autoType: string | null | undefined,
+): { error: string } | { start: string | null; end: string | null; auto: string | null } {
   if (!title.trim()) return { error: "목표 내용을 입력해 주세요." };
   if (title.trim().length > MAX_TITLE) {
     return { error: `목표는 ${MAX_TITLE}자 이내로 입력해 주세요.` };
@@ -74,11 +77,15 @@ function validateGoal(
   if (start && end && start > end) {
     return { error: "종료일은 시작일보다 같거나 늦어야 해요." };
   }
-  return { start, end };
+  const auto = autoType ? String(autoType) : null;
+  if (auto !== null && !(AUTO_TYPES as readonly string[]).includes(auto)) {
+    return { error: "알 수 없는 집계 방식이에요." };
+  }
+  return { start, end, auto };
 }
 
 async function requireUser() {
-  const { userId } = await auth();
+  const userId = await getAllowedUserId();
   return userId;
 }
 
@@ -89,13 +96,15 @@ export async function addGoal(
   targetCount: number,
   startDate: string | null,
   endDate: string | null,
+  autoType: string | null = null,
 ): Promise<GoalResult> {
   if (!(await requireUser())) return { ok: false, error: "로그인이 필요해요." };
-  const v = validateGoal(String(title), Number(targetCount), startDate, endDate);
+  const v = validateGoal(String(title), Number(targetCount), startDate, endDate, autoType);
   if ("error" in v) return { ok: false, error: v.error };
 
   try {
     await db.insert(goals).values({
+      autoType: v.auto,
       title: String(title).trim(),
       targetCount: Number(targetCount),
       startDate: v.start,
@@ -116,15 +125,17 @@ export async function updateGoal(
   targetCount: number,
   startDate: string | null,
   endDate: string | null,
+  autoType: string | null = null,
 ): Promise<GoalResult> {
   if (!(await requireUser())) return { ok: false, error: "로그인이 필요해요." };
-  const v = validateGoal(String(title), Number(targetCount), startDate, endDate);
+  const v = validateGoal(String(title), Number(targetCount), startDate, endDate, autoType);
   if ("error" in v) return { ok: false, error: v.error };
 
   try {
     await db
       .update(goals)
       .set({
+        autoType: v.auto,
         title: String(title).trim(),
         targetCount: Number(targetCount),
         startDate: v.start,
@@ -168,10 +179,13 @@ export async function setGoalProgress(
 
   try {
     const [goal] = await db
-      .select({ targetCount: goals.targetCount })
+      .select({ targetCount: goals.targetCount, autoType: goals.autoType })
       .from(goals)
       .where(and(eq(goals.id, goalId), eq(goals.isActive, true)));
     if (!goal) return { ok: false, error: "목표를 찾을 수 없어요." };
+    if (goal.autoType) {
+      return { ok: false, error: "자동 집계 목표는 직접 바꿀 수 없어요." };
+    }
 
     const value = Math.min(Math.max(Number(progress), 0), goal.targetCount);
     await db

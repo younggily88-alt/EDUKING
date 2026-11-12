@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { assertAllowed } from "@/lib/access";
 import { getDashboardData } from "@/lib/dashboard-data";
 import { ExamCard } from "./exam-card";
 import { GoalsCard } from "./goals-card";
@@ -11,6 +12,7 @@ import {
 
 export async function Dashboard() {
   await connection(); // 요청마다 최신 DB 데이터를 조회 (프리렌더 제외)
+  await assertAllowed(); // 허용 목록에 없는 계정은 데이터를 읽기 전에 차단
   const d = await getDashboardData();
 
   return (
@@ -20,13 +22,14 @@ export async function Dashboard() {
           today={d.today}
           goals={d.goals}
           manageGoals={d.manageGoals}
+          streak={d.streak}
         />
         <ExamCard today={d.today} examDate={d.examDate} />
       </div>
       <NewsSection news={d.news} categories={d.categories} />
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <AssignmentsCard assignments={d.assignments} rubrics={d.rubrics} />
-        <RevisionsCard revisions={d.revisions} />
+        <RevisionsCard revisions={d.revisions} rubrics={d.rubrics} />
       </div>
       <IssueNotesCard issues={d.issues} />
     </div>

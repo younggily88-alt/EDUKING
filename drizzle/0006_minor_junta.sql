@@ -1,0 +1,1 @@
+ALTER TABLE "assignments" ADD COLUMN "kind" varchar(20) DEFAULT 'assignment' NOT NULL;

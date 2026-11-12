@@ -28,6 +28,40 @@ function periodStatus(start: string | null, end: string | null, today: string) {
   return null;
 }
 
+const AUTO_LABELS: Record<string, string> = {
+  assignment: "과제 제출",
+  revision: "과제 수정 제출",
+  issue: "현안 작성",
+};
+
+// 집계 방식: 직접 체크하거나, 앱 활동(과제·현안)을 오늘 몇 건 했는지 자동으로 센다.
+function AutoField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-sm text-stone-600">
+      집계
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label="집계 방식"
+        className={inputClass}
+      >
+        <option value="">직접 체크</option>
+        {Object.entries(AUTO_LABELS).map(([k, label]) => (
+          <option key={k} value={k}>
+            {label} 건수 자동 집계
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function PeriodFields({
   start,
   end,
@@ -91,6 +125,7 @@ export function ManageTab({
     count: number,
     start: string | null,
     end: string | null,
+    auto: string | null,
     reset: () => void,
   ) => void;
   onUpdate: (
@@ -99,6 +134,7 @@ export function ManageTab({
     count: number,
     start: string | null,
     end: string | null,
+    auto: string | null,
     close: () => void,
   ) => void;
   onArchive: (id: number) => void;
@@ -107,6 +143,7 @@ export function ManageTab({
   const [count, setCount] = useState("1");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [auto, setAuto] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showPast, setShowPast] = useState(false);
 
@@ -121,11 +158,12 @@ export function ManageTab({
         className="space-y-2"
         onSubmit={(e) => {
           e.preventDefault();
-          onAdd(title, Number(count), start || null, end || null, () => {
+          onAdd(title, Number(count), start || null, end || null, auto || null, () => {
             setTitle("");
             setCount("1");
             setStart("");
             setEnd("");
+            setAuto("");
           });
         }}
       >
@@ -160,6 +198,7 @@ export function ManageTab({
           </button>
         </div>
         <PeriodFields start={start} end={end} onStart={setStart} onEnd={setEnd} />
+        <AutoField value={auto} onChange={setAuto} />
         <p className="text-xs text-stone-500">
           기간을 비워 두면 매일 반복돼요. 하루만 정하려면 시작일과 종료일을 같게
           입력하세요.
@@ -177,8 +216,8 @@ export function ManageTab({
                 key={g.id}
                 goal={g}
                 pending={pending}
-                onSave={(t, c, s, e) =>
-                  onUpdate(g.id, t, c, s, e, () => setEditingId(null))
+                onSave={(t, c, s, e, a) =>
+                  onUpdate(g.id, t, c, s, e, a, () => setEditingId(null))
                 }
                 onCancel={() => setEditingId(null)}
               />
@@ -194,6 +233,7 @@ export function ManageTab({
                 </span>
                 <span className="text-sm text-stone-500">
                   하루 {g.targetCount}회 · {formatPeriod(g.startDate, g.endDate)}
+                  {g.autoType && ` · ${AUTO_LABELS[g.autoType] ?? g.autoType} 자동 집계`}
                 </span>
                 {status && (
                   <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
@@ -252,6 +292,7 @@ function EditRow({
     count: number,
     start: string | null,
     end: string | null,
+    auto: string | null,
   ) => void;
   onCancel: () => void;
 }) {
@@ -259,6 +300,7 @@ function EditRow({
   const [count, setCount] = useState(String(goal.targetCount));
   const [start, setStart] = useState(goal.startDate ?? "");
   const [end, setEnd] = useState(goal.endDate ?? "");
+  const [auto, setAuto] = useState(goal.autoType ?? "");
 
   return (
     <li className="space-y-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2">
@@ -282,7 +324,9 @@ function EditRow({
         <button
           type="button"
           disabled={pending || !title.trim() || !count}
-          onClick={() => onSave(title, Number(count), start || null, end || null)}
+          onClick={() =>
+            onSave(title, Number(count), start || null, end || null, auto || null)
+          }
           className={primaryBtn}
         >
           저장
@@ -292,6 +336,7 @@ function EditRow({
         </button>
       </div>
       <PeriodFields start={start} end={end} onStart={setStart} onEnd={setEnd} />
+      <AutoField value={auto} onChange={setAuto} />
     </li>
   );
 }

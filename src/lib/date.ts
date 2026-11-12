@@ -42,3 +42,15 @@ export function buildMonth(iso: string) {
 }
 
 export const WEEKDAY_LABELS = WEEKDAYS;
+
+// "YYYY-MM-DD"에 일수를 더한 날짜 (음수 가능)
+export function addDaysISO(iso: string, days: number): string {
+  return new Date(Date.parse(iso) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+// 시각 → 한국 날짜(YYYY-MM-DD)
+export function toKSTDate(value: Date | string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(
+    new Date(value),
+  );
+}

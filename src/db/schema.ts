@@ -48,20 +48,27 @@ export const news = pgTable("news", {
 
 // RSS로 수집한 교육 기사. 원문 전문은 저장하지 않고 RSS가 주는 짧은 요약(summary)과 링크만 저장.
 // category_id는 이후 Claude 분류 단계에서 채우므로 nullable. URL 중복 허용(PRD: 가져올 때마다 새로 쌓음).
-export const articles = pgTable("articles", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  title: text("title").notNull(),
-  source: varchar("source", { length: 100 }).notNull(),
-  url: text("url").notNull(),
-  summary: text("summary"),
-  categoryId: integer("category_id").references(() => categories.id, {
-    onDelete: "set null",
-  }),
-  publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
-  fetchedAt: timestamp("fetched_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const articles = pgTable(
+  "articles",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    title: text("title").notNull(),
+    source: varchar("source", { length: 100 }).notNull(),
+    url: text("url").notNull(),
+    summary: text("summary"),
+    categoryId: integer("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    // AI 요약·분류를 마친 시각. null이면 아직 처리 전(다음 수집 때 재시도).
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  // 같은 URL 기사는 한 번만 저장 (PRD의 '중복 허용'에서 변경)
+  (t) => [unique("articles_url_unique").on(t.url)],
+);
 
 // 과제 업로드
 export type RubricCriterion = {
@@ -89,6 +96,8 @@ export const rubrics = pgTable("rubrics", {
 // content에는 제출물 요약(PDF) 또는 직접 입력한 본문(텍스트 제출)이 들어간다.
 export const assignments = pgTable("assignments", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  // 'assignment' = 과제 제출, 'revision' = 과제 수정 제출 (두 보드는 동일한 기능을 쓴다)
+  kind: varchar("kind", { length: 20 }).default("assignment").notNull(),
   date: date("date").notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),
@@ -128,6 +137,13 @@ export const assignmentRevisions = pgTable("assignment_revisions", {
   ...timestamps,
 });
 
+export type IssueFeedback = {
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  likelyQuestions: { question: string; answerTip: string }[];
+};
+
 // 현안 정리: 10개 항목 모두 필수 (notNull). 빈 문자열 검증은 서버에서 별도로 수행.
 export const issueNotes = pgTable("issue_notes", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -142,6 +158,9 @@ export const issueNotes = pgTable("issue_notes", {
   fieldCase: text("field_case").notNull(), // 내 현장 사례
   counterarguments: text("counterarguments").notNull(), // 예상 반론
   keywords: text("keywords").notNull(), // 키워드
+  // Claude 검토 결과(논리 점검 + 면접 예상 질문). 아직 검토 전이면 null.
+  aiFeedback: jsonb("ai_feedback").$type<IssueFeedback>(),
+  feedbackAt: timestamp("feedback_at", { withTimezone: true }),
   ...timestamps,
 });
 
@@ -153,6 +172,8 @@ export const goals = pgTable("goals", {
   // 적용 기간(선택). 둘 다 null이면 매일 반복. 시작일만/종료일만 있어도 허용(열린 구간).
   startDate: date("start_date"),
   endDate: date("end_date"),
+  // 활동 자동 집계: 'assignment'(과제 제출)·'revision'(수정 제출)·'issue'(현안 작성). null이면 직접 체크.
+  autoType: varchar("auto_type", { length: 20 }),
   isActive: boolean("is_active").default(true).notNull(), // 보관 처리용 (삭제 대신 비활성화)
   ...timestamps,
 });

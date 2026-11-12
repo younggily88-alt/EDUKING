@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getAllowedUserId } from "@/lib/access";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { assignmentFiles, assignments } from "@/db/schema";
@@ -8,7 +8,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { userId } = await auth();
+  const userId = await getAllowedUserId();
   if (!userId) return new Response("로그인이 필요해요.", { status: 401 });
 
   const id = Number((await params).id);

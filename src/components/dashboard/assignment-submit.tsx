@@ -10,7 +10,13 @@ const MAX_BYTES = 4 * 1024 * 1024;
 const inputClass =
   "w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500";
 
-export function AssignmentSubmit({ rubrics }: { rubrics: RubricOption[] }) {
+export function AssignmentSubmit({
+  rubrics,
+  kind = "assignment",
+}: {
+  rubrics: RubricOption[];
+  kind?: "assignment" | "revision";
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
@@ -43,6 +49,7 @@ export function AssignmentSubmit({ rubrics }: { rubrics: RubricOption[] }) {
       const body = new FormData();
       body.set("title", title.trim());
       body.set("rubricId", rubricId);
+      body.set("kind", kind);
       body.set("file", file);
       const res = await fetch("/api/assignments", { method: "POST", body });
       const data = (await res.json().catch(() => null)) as

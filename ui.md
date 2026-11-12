@@ -94,7 +94,8 @@
   2. 제목(`font-semibold line-clamp-2`)
   3. AI 요약(`text-sm text-stone-600 line-clamp-3`)
   4. 하단: 날짜 + "원문 보기 ↗" 링크(`text-brand-600`, 새 탭)
-- 카드 hover: `hover:border-brand-200 hover:shadow-md transition`.
+- 카드 hover: `hover:shadow-md transition`.
+- **카테고리별 색(초록 단일 톤의 예외)**: 뉴스 카테고리는 카테고리 id로 정해진 서로 다른 색(`src/lib/category-colors.ts`)을 쓴다. 필터 칩(선택 시 진한 색), 카드 카테고리 뱃지, 카드 왼쪽 강조선에 같은 색이 적용되고, '미분류'는 회색, '전체'는 브랜드 초록이다. id 기준이라 이름을 바꾸거나 다른 카테고리를 지워도 색은 그대로다.
 - 가져오기 진행 중: 버튼 안에 스피너 + `3/10 처리 중…` 진행 표시(기사 단위 처리, PRD 기준). 완료 전 카드 자리는 `animate-pulse` 스켈레톤.
 - 빈 상태: "아직 뉴스가 없어요. '뉴스 가져오기'를 눌러보세요."
 - 원문 전문은 저장/표시하지 않는다(요약 + 링크만).

@@ -20,10 +20,12 @@ export function GoalsCard({
   today,
   goals,
   manageGoals,
+  streak,
 }: {
   today: string;
   goals: DashboardData["goals"];
   manageGoals: DashboardData["manageGoals"];
+  streak: DashboardData["streak"];
 }) {
   const [tab, setTab] = useState<Tab>("today");
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +91,7 @@ export function GoalsCard({
           items={items}
           done={done}
           allDone={allDone}
+          streakDays={streak.failed ? 0 : streak.data.days}
           pending={pending}
           onProgress={(id, value) => run(() => setGoalProgress(id, value))}
           onGoManage={() => setTab("manage")}
@@ -98,11 +101,11 @@ export function GoalsCard({
           items={manageGoals.data}
           today={today}
           pending={pending}
-          onAdd={(title, count, start, end, reset) =>
-            run(() => addGoal(title, count, start, end), reset)
+          onAdd={(title, count, start, end, auto, reset) =>
+            run(() => addGoal(title, count, start, end, auto), reset)
           }
-          onUpdate={(id, title, count, start, end, close) =>
-            run(() => updateGoal(id, title, count, start, end), close)
+          onUpdate={(id, title, count, start, end, auto, close) =>
+            run(() => updateGoal(id, title, count, start, end, auto), close)
           }
           onArchive={(id) => run(() => archiveGoal(id))}
         />
@@ -121,6 +124,7 @@ function TodayTab({
   items,
   done,
   allDone,
+  streakDays,
   pending,
   onProgress,
   onGoManage,
@@ -128,6 +132,7 @@ function TodayTab({
   items: GoalItem[];
   done: number;
   allDone: boolean;
+  streakDays: number;
   pending: boolean;
   onProgress: (id: number, value: number) => void;
   onGoManage: () => void;
@@ -157,6 +162,14 @@ function TodayTab({
             오늘 목표 달성!
           </span>
         )}
+        {streakDays > 0 && (
+          <span
+            className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700"
+            title="그날 적용되는 목표를 모두 달성한 날이 이어진 일수"
+          >
+            🔥 {streakDays}일 연속
+          </span>
+        )}
       </div>
       <ul className="space-y-2">
         {items.map((g) => {
@@ -166,26 +179,44 @@ function TodayTab({
               key={g.id}
               className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-brand-50"
             >
-              <button
-                type="button"
-                disabled={pending}
-                aria-pressed={achieved}
-                aria-label={`${g.title} ${achieved ? "달성 취소" : "달성 처리"}`}
-                onClick={() => onProgress(g.id, achieved ? 0 : g.targetCount)}
-                className={`flex size-5 shrink-0 items-center justify-center rounded border text-xs focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                  achieved
-                    ? "border-brand-600 bg-brand-600 text-white"
-                    : "border-stone-300 text-transparent hover:border-brand-500"
-                }`}
-              >
-                ✓
-              </button>
+              {g.autoType ? (
+                <span
+                  aria-hidden
+                  className={`flex size-5 shrink-0 items-center justify-center rounded border text-xs ${
+                    achieved
+                      ? "border-brand-600 bg-brand-600 text-white"
+                      : "border-stone-300 text-transparent"
+                  }`}
+                >
+                  ✓
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={pending}
+                  aria-pressed={achieved}
+                  aria-label={`${g.title} ${achieved ? "달성 취소" : "달성 처리"}`}
+                  onClick={() => onProgress(g.id, achieved ? 0 : g.targetCount)}
+                  className={`flex size-5 shrink-0 items-center justify-center rounded border text-xs focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                    achieved
+                      ? "border-brand-600 bg-brand-600 text-white"
+                      : "border-stone-300 text-transparent hover:border-brand-500"
+                  }`}
+                >
+                  ✓
+                </button>
+              )}
               <span
                 className={`flex-1 ${achieved ? "text-stone-400 line-through" : ""}`}
               >
                 {g.title}
               </span>
-              {g.targetCount > 1 && (
+              {g.autoType && (
+                <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
+                  자동 집계
+                </span>
+              )}
+              {g.targetCount > 1 && !g.autoType && (
                 <span className="flex items-center gap-1">
                   <button
                     type="button"

@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getAllowedUserId } from "@/lib/access";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
@@ -18,7 +18,7 @@ function fail(error: string, status: number) {
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
+  const userId = await getAllowedUserId();
   if (!userId) return fail("로그인이 필요해요.", 401);
 
   let form: FormData;
@@ -30,6 +30,11 @@ export async function POST(request: Request) {
 
   const title = String(form.get("title") ?? "").trim();
   const rubricId = Number(form.get("rubricId"));
+  // 과제 제출 / 과제 수정 제출 구분 (허용 목록 외 값은 거부)
+  const kind = String(form.get("kind") ?? "assignment");
+  if (kind !== "assignment" && kind !== "revision") {
+    return fail("잘못된 요청이에요.", 400);
+  }
   const file = form.get("file");
 
   if (!title) return fail("과제 제목을 입력해 주세요.", 400);
@@ -64,6 +69,7 @@ export async function POST(request: Request) {
     const [row] = await db
       .insert(assignments)
       .values({
+        kind,
         date: todayKST(),
         title,
         content: graded.summary,
@@ -87,7 +93,7 @@ export async function POST(request: Request) {
       console.error("[assignments] 원본 PDF 저장 실패", error);
     }
     revalidatePath("/");
-    revalidatePath("/assignments");
+    revalidatePath(kind === "revision" ? "/revisions" : "/assignments");
     return Response.json({
       ok: true,
       id: row.id,

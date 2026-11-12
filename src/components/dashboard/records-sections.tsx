@@ -1,61 +1,49 @@
 ﻿import Link from "next/link";
-import { formatDotted } from "@/lib/date";
 import type { DashboardData } from "@/lib/dashboard-data";
 import { AssignmentItem } from "./assignment-item";
 import { AssignmentSubmit } from "./assignment-submit";
+import { IssueForm } from "./issue-form";
+import { IssueItem } from "./issue-item";
 import { RubricManager } from "./rubric-manager";
-import { Card, Chip, DisabledButton, EmptyState, LoadError } from "./ui";
+import { Card, EmptyState, LoadError } from "./ui";
 
-function Row({
+// 과제 제출 / 과제 수정 제출 공용 카드: 제목·제출 구분·기록 페이지 경로만 다르다.
+function SubmissionCard({
   title,
-  date,
-  extra,
-}: {
-  title: string;
-  date: string;
-  extra?: React.ReactNode;
-}) {
-  return (
-    <li className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 hover:bg-brand-50">
-      <div className="min-w-0">
-        <p className="truncate">{title}</p>
-        {extra && <div className="mt-1">{extra}</div>}
-      </div>
-      <span className="shrink-0 text-sm text-stone-500">
-        {formatDotted(date)}
-      </span>
-    </li>
-  );
-}
-
-export function AssignmentsCard({
-  assignments,
+  kind,
+  historyHref,
+  emptyText,
+  items,
   rubrics,
 }: {
-  assignments: DashboardData["assignments"];
+  title: string;
+  kind: "assignment" | "revision";
+  historyHref: string;
+  emptyText: string;
+  items: DashboardData["assignments"];
   rubrics: DashboardData["rubrics"];
 }) {
   return (
     <Card
-      title="과제 제출"
+      title={title}
       action={
         <Link
-          href="/assignments"
+          href={historyHref}
           className="text-sm font-medium text-brand-600 hover:text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           전체 기록 보기 →
         </Link>
       }
     >
-      {!rubrics.failed && <AssignmentSubmit rubrics={rubrics.data} />}
-      {assignments.failed ? (
+      {!rubrics.failed && <AssignmentSubmit rubrics={rubrics.data} kind={kind} />}
+      {items.failed ? (
         <LoadError />
-      ) : assignments.data.length === 0 ? (
-        <EmptyState>제출한 과제가 아직 없어요.</EmptyState>
+      ) : items.data.length === 0 ? (
+        <EmptyState>{emptyText}</EmptyState>
       ) : (
         <ul className="space-y-1">
-          {assignments.data.map((a) => (
-            <AssignmentItem key={a.id} a={a} />
+          {items.data.map((a) => (
+            <AssignmentItem key={a.id} a={a} rubrics={rubrics.failed ? [] : rubrics.data} />
           ))}
         </ul>
       )}
@@ -73,35 +61,41 @@ export function AssignmentsCard({
   );
 }
 
-export function RevisionsCard({
-  revisions,
+export function AssignmentsCard({
+  assignments,
+  rubrics,
 }: {
-  revisions: DashboardData["revisions"];
+  assignments: DashboardData["assignments"];
+  rubrics: DashboardData["rubrics"];
 }) {
   return (
-    <Card
+    <SubmissionCard
+      title="과제 제출"
+      kind="assignment"
+      historyHref="/assignments"
+      emptyText="제출한 과제가 아직 없어요."
+      items={assignments}
+      rubrics={rubrics}
+    />
+  );
+}
+
+export function RevisionsCard({
+  revisions,
+  rubrics,
+}: {
+  revisions: DashboardData["revisions"];
+  rubrics: DashboardData["rubrics"];
+}) {
+  return (
+    <SubmissionCard
       title="과제 수정 제출"
-      action={<DisabledButton>새 수정본</DisabledButton>}
-    >
-      {revisions.failed ? (
-        <LoadError />
-      ) : revisions.data.length === 0 ? (
-        <EmptyState>수정 제출한 과제가 아직 없어요.</EmptyState>
-      ) : (
-        <ul className="space-y-1">
-          {revisions.data.map((r) => (
-            <Row
-              key={r.id}
-              title={r.title}
-              date={r.date}
-              extra={
-                r.originalTitle ? <Chip>원본: {r.originalTitle}</Chip> : null
-              }
-            />
-          ))}
-        </ul>
-      )}
-    </Card>
+      kind="revision"
+      historyHref="/revisions"
+      emptyText="수정 제출한 과제가 아직 없어요."
+      items={revisions}
+      rubrics={rubrics}
+    />
   );
 }
 
@@ -111,24 +105,26 @@ export function IssueNotesCard({
   issues: DashboardData["issues"];
 }) {
   return (
-    <Card title="현안 정리" action={<DisabledButton>새 현안</DisabledButton>}>
+    <Card
+      title="현안 정리"
+      action={
+        <Link
+          href="/issues"
+          className="text-sm font-medium text-brand-600 hover:text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          전체 보기 →
+        </Link>
+      }
+    >
+      <IssueForm />
       {issues.failed ? (
         <LoadError />
       ) : issues.data.length === 0 ? (
-        <EmptyState>정리한 현안이 아직 없어요.</EmptyState>
+        <EmptyState>정리한 현안이 아직 없어요. &apos;+ 새 현안&apos;으로 첫 현안을 남겨 보세요.</EmptyState>
       ) : (
         <ul className="space-y-1">
           {issues.data.map((n) => (
-            <Row
-              key={n.id}
-              title={n.titleSummary}
-              date={n.date}
-              extra={
-                <span className="line-clamp-1 text-xs text-stone-500">
-                  {n.keywords}
-                </span>
-              }
-            />
+            <IssueItem key={n.id} n={n} />
           ))}
         </ul>
       )}
