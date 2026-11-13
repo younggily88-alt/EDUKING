@@ -1,6 +1,7 @@
 import { Show, UserButton } from "@clerk/nextjs";
 import { Suspense } from "react";
 import { AuthGate } from "@/components/auth-gate";
+import { OwnerLink } from "@/components/owner-link";
 import {
   Dashboard,
   DashboardSkeleton,
@@ -22,6 +23,9 @@ export default function Home() {
               🌿 교육전문직을 준비
             </span>
             <div className="flex items-center gap-4">
+              <Suspense fallback={null}>
+                <OwnerLink />
+              </Suspense>
               <a
                 href="/api/export"
                 download

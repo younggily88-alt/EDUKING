@@ -1,6 +1,7 @@
 import { getAllowedUserId } from "@/lib/access";
 import { db } from "@/db";
 import {
+  allowedUsers,
   appSettings,
   articles,
   assignmentFiles,
@@ -33,6 +34,7 @@ export async function GET(request: Request) {
     assignmentRows,
     issueRows,
     fileRows,
+    accessRows,
   ] = await Promise.all([
     db.select().from(appSettings),
     db.select().from(categories),
@@ -43,6 +45,7 @@ export async function GET(request: Request) {
     db.select().from(assignments),
     db.select().from(issueNotes),
     withFiles ? db.select().from(assignmentFiles) : Promise.resolve([]),
+    db.select().from(allowedUsers),
   ]);
 
   const today = todayKST();
@@ -58,6 +61,7 @@ export async function GET(request: Request) {
       rubrics: rubricRows,
       assignments: assignmentRows, // kind: 'assignment'(과제 제출) | 'revision'(과제 수정 제출)
       issueNotes: issueRows,
+      allowedUsers: accessRows,
       ...(withFiles ? { assignmentFiles: fileRows } : {}),
     },
     null,

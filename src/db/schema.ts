@@ -209,6 +209,14 @@ export const appSettings = pgTable("app_settings", {
     .notNull(),
 });
 
+// 앱 안에서 관리하는 접근 허용 이메일. 환경 변수 ALLOWED_EMAILS의 이메일은 '관리자'로 항상 허용되고,
+// 여기에 추가한 이메일은 '멤버'로 앱을 쓸 수 있다(접근 관리 화면은 관리자만).
+export const allowedUsers = pgTable("allowed_users", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  email: varchar("email", { length: 200 }).notNull().unique(), // 항상 소문자
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // ── 면접 준비 자판기 ─────────────────────────────────────────────
 export type InterviewResult = {
   criteria: { name: string; maxPoints: number; score: number; comment: string }[];
