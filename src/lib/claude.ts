@@ -8,7 +8,7 @@ export class AiError extends Error {}
 // 뉴스 분류, 현안 검토처럼 "프롬프트 하나 → 구조화된 결과" 용도로 쓴다.
 export async function askClaudeJson<T>(args: {
   system: string;
-  prompt: string;
+  prompt: string | Anthropic.Beta.Messages.BetaContentBlockParam[];
   schema: Record<string, unknown>;
   effort?: "low" | "medium" | "high";
   maxTokens?: number;

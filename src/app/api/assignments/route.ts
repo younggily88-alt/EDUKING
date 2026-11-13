@@ -1,5 +1,5 @@
 import { getAllowedUserId } from "@/lib/access";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { assignmentFiles, assignments, rubrics } from "@/db/schema";
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     return fail("PDF 파일만 제출할 수 있어요.", 400);
   }
 
-  const [rubric] = await db.select().from(rubrics).where(eq(rubrics.id, rubricId));
+  const [rubric] = await db.select().from(rubrics).where(and(eq(rubrics.id, rubricId), eq(rubrics.kind, "assignment")));
   if (!rubric) return fail("선택한 채점 기준표를 찾을 수 없어요.", 400);
 
   let graded;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deleteIssueNote, reviewIssueNote } from "@/app/issue-actions";
+import { deleteIssueNote, reviewIssueNote, saveIssueNoteToNotion } from "@/app/issue-actions";
 import { formatDotted } from "@/lib/date";
 import { ISSUE_FIELDS, type IssueValues } from "@/lib/issue-fields";
 import type { IssueNote } from "@/db/schema";
@@ -9,7 +9,7 @@ import { IssueForm } from "./issue-form";
 
 export type IssueRow = Pick<
   IssueNote,
-  "id" | "date" | "aiFeedback" | "feedbackAt" | IssueValuesKey
+  "id" | "date" | "aiFeedback" | "feedbackAt" | "notionUrl" | "notionSavedAt" | IssueValuesKey
 >;
 type IssueValuesKey = keyof IssueValues;
 
@@ -22,6 +22,7 @@ export function IssueItem({ n }: { n: IssueRow }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
   const fb = n.aiFeedback;
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
@@ -77,6 +78,40 @@ export function IssueItem({ n }: { n: IssueRow }) {
               )}
               {pending ? "검토 중… (최대 1~2분)" : fb ? "AI 다시 검토" : "AI 검토 + 면접 질문"}
             </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                setSaving(true);
+                run(async () => {
+                  try {
+                    return await saveIssueNoteToNotion(n.id);
+                  } finally {
+                    setSaving(false);
+                  }
+                });
+              }}
+              title="Notion '현안정리' 데이터베이스에 저장합니다. 이미 저장했다면 같은 페이지를 갱신해요."
+              className="inline-flex items-center gap-2 rounded-lg border border-brand-200 px-3 py-1.5 text-sm text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+            >
+              {saving && (
+                <span
+                  aria-hidden
+                  className="size-3.5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"
+                />
+              )}
+              {saving ? "Notion에 저장 중…" : n.notionSavedAt ? "Notion에 다시 저장" : "Notion에 저장"}
+            </button>
+            {n.notionUrl && (
+              <a
+                href={n.notionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
+              >
+                Notion에서 열기 ↗
+              </a>
+            )}
             <button
               type="button"
               disabled={pending}

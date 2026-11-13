@@ -1,0 +1,1 @@
+ALTER TABLE "rubrics" ADD COLUMN "kind" varchar(20) DEFAULT 'assignment' NOT NULL;

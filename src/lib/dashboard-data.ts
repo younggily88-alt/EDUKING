@@ -31,12 +31,14 @@ const issueColumns = {
   keywords: issueNotes.keywords,
   aiFeedback: issueNotes.aiFeedback,
   feedbackAt: issueNotes.feedbackAt,
+  notionUrl: issueNotes.notionUrl,
+  notionSavedAt: issueNotes.notionSavedAt,
 };
 
 export type Loaded<T> = { data: T; failed: boolean };
 
 // 섹션 하나가 실패해도(예: 마이그레이션 미적용) 나머지 화면은 보여준다.
-async function load<T>(
+export async function load<T>(
   label: string,
   fn: () => Promise<T>,
   fallback: T,
@@ -206,6 +208,7 @@ export async function getDashboardData() {
               criteria: rubrics.criteria,
             })
             .from(rubrics)
+            .where(eq(rubrics.kind, "assignment"))
             .orderBy(asc(rubrics.id)),
         [],
       ),
@@ -276,6 +279,7 @@ export async function getRubrics() {
       db
         .select({ id: rubrics.id, name: rubrics.name })
         .from(rubrics)
+        .where(eq(rubrics.kind, "assignment"))
         .orderBy(asc(rubrics.id)),
     [],
   );

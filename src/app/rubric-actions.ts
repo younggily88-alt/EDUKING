@@ -49,17 +49,22 @@ async function requireUser() {
 export async function createRubric(
   name: string,
   criteria: RubricCriterion[],
+  kind: string = "assignment",
 ): Promise<RubricResult> {
   if (!(await requireUser())) return { ok: false, error: "로그인이 필요해요." };
+  if (kind !== "assignment" && kind !== "interview") {
+    return { ok: false, error: "알 수 없는 기준표 종류예요." };
+  }
   const v = validate(name, criteria);
   if ("error" in v) return { ok: false, error: v.error };
   try {
-    await db.insert(rubrics).values(v);
+    await db.insert(rubrics).values({ ...v, kind });
   } catch (e) {
     console.error("[createRubric] 실패", e);
     return { ok: false, error: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." };
   }
   revalidatePath("/");
+  revalidatePath("/interview");
   return { ok: true };
 }
 
@@ -78,6 +83,7 @@ export async function updateRubric(
     return { ok: false, error: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." };
   }
   revalidatePath("/");
+  revalidatePath("/interview");
   return { ok: true };
 }
 
@@ -91,5 +97,6 @@ export async function deleteRubric(id: number): Promise<RubricResult> {
     return { ok: false, error: "삭제하지 못했어요. 잠시 후 다시 시도해 주세요." };
   }
   revalidatePath("/");
+  revalidatePath("/interview");
   return { ok: true };
 }

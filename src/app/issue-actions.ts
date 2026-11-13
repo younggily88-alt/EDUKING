@@ -9,8 +9,9 @@ import { todayKST } from "@/lib/date";
 import { ISSUE_FIELDS, type IssueValues } from "@/lib/issue-fields";
 import { AiError } from "@/lib/claude";
 import { reviewIssue } from "@/lib/issue-review";
+import { NotionError, saveIssueToNotion } from "@/lib/notion";
 
-export type IssueResult = { ok: boolean; error?: string };
+export type IssueResult = { ok: boolean; error?: string; url?: string };
 
 // 10개 항목 모두 필수. 화면의 버튼 비활성화와 별개로 서버에서 다시 검증한다
 // (공백만 있는 값, 빈 문자열, 누락, 길이 초과 모두 거부).
@@ -109,4 +110,34 @@ export async function reviewIssueNote(id: number): Promise<IssueResult> {
   }
   refresh();
   return { ok: true };
+}
+
+// 현안을 Notion 데이터베이스에 저장한다. 이미 저장한 현안이면 같은 페이지를 갱신한다.
+export async function saveIssueNoteToNotion(id: number): Promise<IssueResult> {
+  const userId = await getAllowedUserId();
+  if (!userId) return { ok: false, error: "로그인이 필요해요." };
+
+  const [note] = await db.select().from(issueNotes).where(eq(issueNotes.id, Number(id)));
+  if (!note) return { ok: false, error: "현안을 찾을 수 없어요." };
+
+  let saved;
+  try {
+    saved = await saveIssueToNotion(note, note.notionPageId);
+  } catch (error) {
+    if (error instanceof NotionError) return { ok: false, error: error.message };
+    console.error("[saveIssueNoteToNotion] 실패", error);
+    return { ok: false, error: "Notion 저장 중 오류가 발생했어요." };
+  }
+
+  try {
+    await db
+      .update(issueNotes)
+      .set({ notionPageId: saved.pageId, notionUrl: saved.url, notionSavedAt: new Date() })
+      .where(eq(issueNotes.id, note.id));
+  } catch (error) {
+    console.error("[saveIssueNoteToNotion] 기록 실패", error);
+    return { ok: true, url: saved.url, error: "Notion에는 저장했지만 앱에 기록하지 못했어요." };
+  }
+  refresh();
+  return { ok: true, url: saved.url };
 }

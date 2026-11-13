@@ -122,16 +122,6 @@ export function IssueForm({
           {ISSUE_FIELDS.length}개 중 {filled}개 입력
         </span>
         <div className="flex gap-2">
-          {!edit && (
-            <button
-              type="button"
-              disabled
-              title="준비 중"
-              className="cursor-not-allowed rounded-lg bg-stone-200 px-4 py-2 text-sm font-medium text-stone-400"
-            >
-              Notion에 저장
-            </button>
-          )}
           <button
             type="button"
             disabled={pending}

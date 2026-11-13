@@ -1,6 +1,8 @@
 import { connection } from "next/server";
 import { assertAllowed } from "@/lib/access";
 import { getDashboardData } from "@/lib/dashboard-data";
+import { getInterviewStats } from "@/lib/interview-data";
+import { InterviewCard } from "@/components/interview/interview-card";
 import { ExamCard } from "./exam-card";
 import { GoalsCard } from "./goals-card";
 import { NewsSection } from "./news-section";
@@ -13,7 +15,7 @@ import {
 export async function Dashboard() {
   await connection(); // 요청마다 최신 DB 데이터를 조회 (프리렌더 제외)
   await assertAllowed(); // 허용 목록에 없는 계정은 데이터를 읽기 전에 차단
-  const d = await getDashboardData();
+  const [d, interviewStats] = await Promise.all([getDashboardData(), getInterviewStats()]);
 
   return (
     <div className="space-y-6">
@@ -32,6 +34,7 @@ export async function Dashboard() {
         <RevisionsCard revisions={d.revisions} rubrics={d.rubrics} />
       </div>
       <IssueNotesCard issues={d.issues} />
+      <InterviewCard stats={interviewStats} />
     </div>
   );
 }

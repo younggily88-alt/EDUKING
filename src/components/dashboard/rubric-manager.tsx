@@ -21,7 +21,13 @@ const secondaryBtn =
 
 const emptyRow = (): DraftCriterion => ({ name: "", description: "", maxPoints: "10" });
 
-export function RubricManager({ rubrics }: { rubrics: RubricItem[] }) {
+export function RubricManager({
+  rubrics,
+  kind = "assignment",
+}: {
+  rubrics: RubricItem[];
+  kind?: "assignment" | "interview";
+}) {
   // editing: null = 목록, "new" = 새 기준표, number = 수정 중인 기준표 id
   const [editing, setEditing] = useState<null | "new" | number>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +59,7 @@ export function RubricManager({ rubrics }: { rubrics: RubricItem[] }) {
         }
         pending={pending}
         error={error}
+        kind={kind}
         onCancel={() => {
           setEditing(null);
           setError(null);
@@ -62,7 +69,7 @@ export function RubricManager({ rubrics }: { rubrics: RubricItem[] }) {
             () =>
               target
                 ? updateRubric(target.id, name, criteria)
-                : createRubric(name, criteria),
+                : createRubric(name, criteria, kind),
             () => setEditing(null),
           )
         }
@@ -124,6 +131,7 @@ export function RubricManager({ rubrics }: { rubrics: RubricItem[] }) {
 }
 
 function RubricEditor({
+  kind,
   initialName,
   initialCriteria,
   pending,
@@ -131,6 +139,7 @@ function RubricEditor({
   onSave,
   onCancel,
 }: {
+  kind: "assignment" | "interview";
   initialName: string;
   initialCriteria: DraftCriterion[];
   pending: boolean;
@@ -159,7 +168,7 @@ function RubricEditor({
         value={name}
         onChange={(e) => setName(e.target.value)}
         maxLength={100}
-        placeholder="기준표 이름 (예: 논술 과제 기준)"
+        placeholder={kind === "interview" ? "기준표 이름 (예: 정책 면접 기준)" : "기준표 이름 (예: 논술 과제 기준)"}
         aria-label="기준표 이름"
         className={`${inputClass} w-full`}
       />

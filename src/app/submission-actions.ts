@@ -1,7 +1,7 @@
 "use server";
 
 import { getAllowedUserId } from "@/lib/access";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { assignmentFiles, assignments, rubrics } from "@/db/schema";
@@ -44,7 +44,7 @@ export async function regradeSubmission(
     .where(eq(assignments.id, Number(id)));
   if (!row) return { ok: false, error: "저장된 PDF 원본이 없어 다시 채점할 수 없어요." };
 
-  const [rubric] = await db.select().from(rubrics).where(eq(rubrics.id, Number(rubricId)));
+  const [rubric] = await db.select().from(rubrics).where(and(eq(rubrics.id, Number(rubricId)), eq(rubrics.kind, "assignment")));
   if (!rubric) return { ok: false, error: "선택한 채점 기준표를 찾을 수 없어요." };
 
   let graded;

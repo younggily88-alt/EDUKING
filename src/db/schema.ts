@@ -88,6 +88,8 @@ export type GradeResult = {
 export const rubrics = pgTable("rubrics", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: varchar("name", { length: 100 }).notNull(),
+  // 'assignment' = 과제 채점용, 'interview' = 면접 답변 채점용 (각각 따로 관리)
+  kind: varchar("kind", { length: 20 }).default("assignment").notNull(),
   criteria: jsonb("criteria").$type<RubricCriterion[]>().notNull(),
   ...timestamps,
 });
@@ -161,6 +163,10 @@ export const issueNotes = pgTable("issue_notes", {
   // Claude 검토 결과(논리 점검 + 면접 예상 질문). 아직 검토 전이면 null.
   aiFeedback: jsonb("ai_feedback").$type<IssueFeedback>(),
   feedbackAt: timestamp("feedback_at", { withTimezone: true }),
+  // Notion에 저장한 페이지. 다시 저장하면 이 페이지를 갱신한다.
+  notionPageId: text("notion_page_id"),
+  notionUrl: text("notion_url"),
+  notionSavedAt: timestamp("notion_saved_at", { withTimezone: true }),
   ...timestamps,
 });
 
@@ -203,11 +209,60 @@ export const appSettings = pgTable("app_settings", {
     .notNull(),
 });
 
+// ── 면접 준비 자판기 ─────────────────────────────────────────────
+export type InterviewResult = {
+  criteria: { name: string; maxPoints: number; score: number; comment: string }[];
+  overall: string;
+  strengths: string[];
+  improvements: string[];
+  modelAnswer: string;
+  followUp: string;
+};
+
+// 면접 문항의 근거가 되는 자료. PDF는 base64로, 텍스트는 content에 그대로 저장한다.
+export const materials = pgTable("materials", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  kind: varchar("kind", { length: 10 }).notNull(), // 'pdf' | 'text'
+  content: text("content"), // kind = 'text'
+  fileName: text("file_name"), // kind = 'pdf'
+  dataBase64: text("data_base64"), // kind = 'pdf'
+  sizeBytes: integer("size_bytes").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Claude가 자료에서 뽑아 낸 면접 문항. keyPoints(좋은 답변의 핵심)는 채점 기준으로 쓰고 답변 전에는 숨긴다.
+export const interviewQuestions = pgTable("interview_questions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  question: text("question").notNull(),
+  category: varchar("category", { length: 30 }).notNull(),
+  intent: text("intent").notNull(), // 출제 의도
+  keyPoints: jsonb("key_points").$type<string[]>().notNull(),
+  materialTitles: jsonb("material_titles").$type<string[]>().notNull(), // 출제 당시 자료 제목(자료를 지워도 남김)
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// 문항 하나에 여러 번 답해 볼 수 있다 (다시 도전).
+export const interviewAttempts = pgTable("interview_attempts", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  questionId: integer("question_id")
+    .notNull()
+    .references(() => interviewQuestions.id, { onDelete: "cascade" }),
+  answer: text("answer").notNull(),
+  score: integer("score").notNull(),
+  maxScore: integer("max_score").notNull(),
+  result: jsonb("result").$type<InterviewResult>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type News = typeof news.$inferSelect;
 export type Article = typeof articles.$inferSelect;
 export type Assignment = typeof assignments.$inferSelect;
 export type Rubric = typeof rubrics.$inferSelect;
+export type Material = typeof materials.$inferSelect;
+export type InterviewQuestion = typeof interviewQuestions.$inferSelect;
+export type InterviewAttempt = typeof interviewAttempts.$inferSelect;
 export type AssignmentRevision = typeof assignmentRevisions.$inferSelect;
 export type IssueNote = typeof issueNotes.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
