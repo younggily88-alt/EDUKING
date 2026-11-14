@@ -19,6 +19,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <html lang="ko" className={`${notoSansKr.variable} h-full antialiased`}>
         <body className="min-h-full flex flex-col leading-relaxed">
           {children}
+          <footer className="mt-auto px-4 py-4 text-center text-xs text-stone-600">
+            제작: 박영길
+          </footer>
         </body>
       </html>
     </ClerkProvider>
