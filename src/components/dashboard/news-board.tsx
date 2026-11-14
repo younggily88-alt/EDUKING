@@ -11,12 +11,11 @@ import { formatShortDate } from "@/lib/date";
 import type { DashboardData } from "@/lib/dashboard-data";
 import { EmptyState } from "./ui";
 import {
-  UNCATEGORIZED_COLOR,
   colorForCategory,
   type CategoryColor,
 } from "@/lib/category-colors";
 
-type Filter = "all" | "none" | number;
+type Filter = "all" | number;
 const PAGE = 6;
 
 export function NewsBoard({
@@ -34,7 +33,7 @@ export function NewsBoard({
   const [pending, startTransition] = useTransition();
 
   const filtered = news.filter((n) =>
-    filter === "all" ? true : filter === "none" ? n.categoryId === null : n.categoryId === filter,
+    filter === "all" ? true : n.categoryId === filter,
   );
 
   function run(action: () => Promise<CategoryResult>, onOk?: () => void) {
@@ -130,7 +129,7 @@ export function NewsBoard({
                   disabled={pending}
                   aria-label={`${c.name} 삭제`}
                   onClick={() => {
-                    if (confirm(`'${c.name}' 카테고리를 삭제할까요? 이 카테고리의 뉴스는 '미분류'로 이동합니다.`)) {
+                    if (confirm(`'${c.name}' 카테고리를 삭제할까요? 이 카테고리의 뉴스는 화면에서 보이지 않게 됩니다(기사 자체는 삭제되지 않아요).`)) {
                       if (filter === c.id) setFilter("all");
                       run(() => deleteCategory(c.id));
                     }
@@ -142,17 +141,6 @@ export function NewsBoard({
               </span>
             ),
           )}
-          <button
-            type="button"
-            aria-pressed={filter === "none"}
-            onClick={() => {
-              setFilter("none");
-              setVisible(PAGE);
-            }}
-            className={chip(filter === "none", UNCATEGORIZED_COLOR)}
-          >
-            미분류
-          </button>
           {editing === "new" ? (
             <span className="flex items-center gap-1">
               <input

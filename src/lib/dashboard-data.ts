@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appSettings,
@@ -73,6 +73,9 @@ export async function getDashboardData() {
             })
             .from(articles)
             .leftJoin(categories, eq(articles.categoryId, categories.id))
+            // 카테고리가 없는 기사('미분류': AI가 어디에도 맞지 않는다고 본 기사, 삭제된 카테고리의 기사)는
+            // DB에는 남기되 화면에는 보여주지 않는다.
+            .where(isNotNull(articles.categoryId))
             .orderBy(desc(articles.publishedAt), desc(articles.id))
             .limit(60),
         [],
