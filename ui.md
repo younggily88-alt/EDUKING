@@ -1,4 +1,4 @@
-# UI 가이드 — 교육전문직을 준비
+# UI 가이드 — 교육전문직 준비 도우미
 
 메인 대시보드 한 화면의 UI 가이드. 기능 요구사항의 기준은 `PRD.md`, 이 문서는 **화면 구성·스타일** 기준이다.
 스택: Next.js App Router + Tailwind CSS v4. UI 텍스트는 모두 한국어.
@@ -45,7 +45,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│ 헤더: 🌿 교육전문직을 준비                    [UserButton] │
+│ 헤더: 🌿 교육전문직 준비 도우미                    [UserButton] │
 ├──────────────────────────────────────────────────────────┤
 │ ① 오늘의 목표 (2/3 칸)        │ ② D-day + 달력 (1/3 칸)   │
 ├──────────────────────────────────────────────────────────┤
@@ -63,7 +63,7 @@
 - 상단 영역: `grid grid-cols-1 lg:grid-cols-3 gap-6` (목표 `lg:col-span-2`, 달력 1칸)
 - 과제 영역: `grid grid-cols-1 md:grid-cols-2 gap-6`
 - 모바일(<768px)은 모든 섹션이 세로 1열로 쌓인다.
-- 헤더: `sticky top-0 bg-white/90 backdrop-blur border-b border-brand-100`. 좌측 앱 이름 `교육전문직을 준비`(`text-brand-900 font-bold`), 우측 Clerk `UserButton`.
+- 헤더: `sticky top-0 bg-white/90 backdrop-blur border-b border-brand-100`. 좌측 앱 이름 `교육전문직 준비 도우미`(`text-brand-900 font-bold`), 우측 Clerk `UserButton`.
 
 ## 4. 섹션별 명세
 

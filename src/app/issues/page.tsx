@@ -6,7 +6,7 @@ import { IssueForm } from "@/components/dashboard/issue-form";
 import { Card, LoadError } from "@/components/dashboard/ui";
 import { getAllIssues } from "@/lib/dashboard-data";
 
-export const metadata = { title: "현안 정리 · 교육전문직을 준비" };
+export const metadata = { title: "현안 정리 · 교육전문직 준비 도우미" };
 
 // AI 검토(Claude 호출)가 오래 걸릴 수 있다.
 export const maxDuration = 120;

@@ -66,7 +66,7 @@ export function HistoryShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-10 border-b border-brand-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Link href="/" className="text-xl font-bold text-brand-900">
-            🌿 교육전문직을 준비
+            🌿 교육전문직 준비 도우미
           </Link>
           <UserButton />
         </div>

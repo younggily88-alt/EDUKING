@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { allowedUsers } from "@/db/schema";
 import { allowedEmails, assertOwner } from "@/lib/access";
 
-export const metadata = { title: "접근 관리 · 교육전문직을 준비" };
+export const metadata = { title: "접근 관리 · 교육전문직 준비 도우미" };
 
 async function AccessAdmin() {
   await connection(); // 요청마다 최신 목록을 조회

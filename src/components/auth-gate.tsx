@@ -14,7 +14,7 @@ export function AuthGate() {
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-4">
-      <h1 className="text-2xl font-semibold">교육전문직 학습 대시보드</h1>
+      <h1 className="text-2xl font-semibold">교육전문직 준비 도우미</h1>
       <p className="text-zinc-600">로그인 후 이용할 수 있습니다.</p>
       <button
         type="button"

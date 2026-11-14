@@ -1,7 +1,7 @@
 import { Show, SignOutButton } from "@clerk/nextjs";
 import { Suspense } from "react";
 
-export const metadata = { title: "접근 권한 없음 · 교육전문직을 준비" };
+export const metadata = { title: "접근 권한 없음 · 교육전문직 준비 도우미" };
 
 export default function NotAllowedPage() {
   return (

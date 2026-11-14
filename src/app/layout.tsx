@@ -9,7 +9,7 @@ const notoSansKr = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "교육전문직을 준비",
+  title: "교육전문직 준비 도우미",
   description: "교육전문직 준비 교사용 개인 학습 대시보드",
 };
 

@@ -8,7 +8,7 @@ import { getInterviewData, getInterviewRubrics } from "@/lib/interview-data";
 import { INTERVIEW_CRITERIA } from "@/lib/interview-config";
 import { RubricManager } from "@/components/dashboard/rubric-manager";
 
-export const metadata = { title: "면접 준비 자판기 · 교육전문직을 준비" };
+export const metadata = { title: "면접 준비 자판기 · 교육전문직 준비 도우미" };
 
 // 문항 생성·채점(Claude 호출)이 오래 걸릴 수 있다.
 export const maxDuration = 120;
